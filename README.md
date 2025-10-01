@@ -1,43 +1,72 @@
-# webapp_mangetamain
+# Webapp Mangetamain
 
-[![PyPI - Version](https://img.shields.io/pypi/v/webapp-mangetamain.svg)](https://pypi.org/project/webapp-mangetamain)
-[![PyPI - Python Version](https://img.shields.io/pypi/pyversions/webapp-mangetamain.svg)](https://pypi.org/project/webapp-mangetamain)
+A lightweight web application project for data-driven workflows on Recipe from [Kaggle](https://www.kaggle.com/datasets/shuyangli94/food-com-recipes-and-user-interactions).  
 
------
+---
 
-## Table of Contents
-
+## 📑 Table of Contents
+- [Prerequisites](#prerequisites)
 - [Installation](#installation)
+- [Project Structure](#project-structure)
+- [Interface](#interface)
 - [License](#license)
 
-## Installation
-### Setup 
-Project tree structure
+---
+
+## 🛠️ Prerequisites
+
+[![Python](https://img.shields.io/badge/Python->=3.10-blue?logo=python&logoColor=white)](https://www.python.org/)
+
+Make sure you have **Python 3.10 or higher** installed.
+
+---
+
+## ⚙️ Installation
+
+### Setup  
+
+Clone the repository and set up the environment using [Hatch](https://hatch.pypa.io/):  
+
+```console
+# Create development environment
+hatch env create
+
+# Enter shell
+hatch shell
+
+# Run the webapp
+hatch run webapp
+
+# Utilities
+hatch env remove default
+hatch env create
+```
+
+
+## 📂 Project Structure
+
 ```
 webapp_mangetamain/
-├── data/                # CSV files
+├── data/                   # CSV files
 ├── src/
 │   └── webapp_mangetamain/
 │       ├── __init__.py   
-│       └── .... 
-└── tests/                 
+│       └── ...
+├── tests/                  
 ├── LICENSE.txt
 ├── README.md
-├── pyproject.toml         # Project config
+├── pyproject.toml          # Project config
 ```
 
-```console
-# dev
-hatch env create
-hatch shell
-hatch run webapp
+---
 
-# utils cmd
-hatch env remove default
-hatch env create
+## 🖥️ Interface
 
+*(Add screenshots, UI descriptions, or usage instructions here)*
+## dev
+```
+http://localhost:8501
 ```
 
-## License
+## 📄 License
 
-`webapp-mangetamain` is distributed under the terms of the [MIT](https://spdx.org/licenses/MIT.html) license.
