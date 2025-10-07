@@ -4,10 +4,7 @@ import numpy as np
 import filter_data
 from recipe_complexity import make_corr_heatmap_fig, make_pairplot_fig, make_univariate_figs
 import ingredients_analyzer
-from webapp_mangetamain.load_config import recipe
-
-from recipe_complexity import make_corr_heatmap_fig, make_pairplot_fig, make_univariate_figs
-from webapp_mangetamain.load_config import recipe, recipe_rating
+from load_config import recipe, recipe_rating
 from nutriscore_analyzer import (
     parse_nutrition,
     filter_data_with_nutri,
