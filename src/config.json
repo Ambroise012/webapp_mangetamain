@@ -1,5 +1,6 @@
 {
     "data_path": "data/RAW_recipes.csv",
+    "data_rating_path": "data/recipes_with_ratings.csv",
     "DRINK_KEYWORDS": [
       "\\bbeverage(s)?\\b",
       "\\bdrink(s)?\\b",

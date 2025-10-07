@@ -2,7 +2,7 @@
 import streamlit as st
 
 from recipe_complexity import make_corr_heatmap_fig, make_pairplot_fig, make_univariate_figs
-from webapp_mangetamain.load_config import recipe
+from webapp_mangetamain.load_config import recipe, recipe_rating
 from nutriscore_analyzer import (
     parse_nutrition,
     filter_data_with_nutri,
@@ -18,8 +18,8 @@ from tag_analyzer import (
     filter_tags_of_interest,
     plot_top_tags_by_metric,
     create_tag_recipes_dataset,
-    plot_tag_frequency_distribution,
-)
+    plot_tag_frequency_distribution
+    )
 
 from filter_data import separate_foods_drinks, recipes_clean
 
@@ -105,7 +105,7 @@ def render_nutriscore_tab():
 
         We are seen the same patern as before. Even when we remove drinks from recipes.
 
-        T+So this discrepancy could be explained by:
+        So this discrepancy could be explained by:
         - Incorrectly entered values,
         - Whether the data is standardized (e.g., per 100g).
         """)
