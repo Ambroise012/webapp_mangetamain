@@ -1,5 +1,6 @@
+"main function of the stremlit app"
 import streamlit as st
-import filter_data
+
 from recipe_complexity import make_corr_heatmap_fig, make_pairplot_fig, make_univariate_figs
 from webapp_mangetamain.load_config import recipe
 from nutriscore_analyzer import (
@@ -9,7 +10,7 @@ from nutriscore_analyzer import (
     correlation_matrix,
     plot_nutriscore_comparison
 )
-from filter_data import separate_foods_drinks
+from filter_data import separate_foods_drinks, recipes_clean
 
 def render_nutriscore_tab():
     """Render the Nutriscore tab content in Streamlit."""
@@ -115,7 +116,7 @@ def render_ingredient_tab():
     )
 
 def render_complexity_tab():
-    df = filter_data.recipes_clean
+    df = recipes_clean
     """Render the Complexity tab content in Streamlit."""
     st.header("Complexity")
     st.markdown(

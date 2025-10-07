@@ -1,3 +1,4 @@
+"Utils function and vaariable for the nutrition analyzer tab"
 import ast
 from typing import Dict
 
