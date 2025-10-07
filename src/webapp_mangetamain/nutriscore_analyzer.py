@@ -1,38 +1,27 @@
 import ast
+from typing import Dict
 
 import pandas as pd
 import streamlit as st
 import seaborn as sns
 import matplotlib.pyplot as plt
-from typing import Dict
+
+from webapp_mangetamain.load_config import cfg
 
 
-nutrient_labels = [
-    "calories", "fat", "sugar", "sodium", "protein", "saturated_fat", "carbohydrates"
-]
-
-THRESHOLDS = {
-    "calories": [335, 670, 1005, 1340, 1675, 2010, 2345, 2680, 3015, 33500],  # 0-10 pts
-    "sugar": [3.4, 6.8, 10, 14, 17, 20, 24, 27, 31, 34, 37, 41, 44, 48, 51],  # 0-15 pts
-    "sodium": [2, 8, 13, 16, 20, 50, 80, 150, 300, 800],  # 0-10 pts
-    "protein": [4, 8, 10, 14, 17, 20, 28],  # 0-7 pts
-    "saturated_fat": [10, 16, 22, 28, 34, 40, 46, 52, 58, 64],  # 0-10 pts
-}
+# -------------------------
+# Configuration setup
+# -------------------------
 
 NUTRISCORE = {
-    (0, 2): "A",
-    (3, 10): "B",
-    (11, 18): "C",
-    (19, 40): "D",
-    (41, 100): "E"
+    tuple(map(int, k.strip("()").split(","))): v
+    for k, v in cfg.NUTRISCORE.__dict__.items()
 }
 
+nutrient_labels = cfg.nutrient_labels
+THRESHOLDS = cfg.THRESHOLDS.__dict__
 NUTRITION_LIMITS = {
-    "calories": {"min": 0, "max": 50000},
-    "sugar": {"min": 0, "max": 200},
-    "sodium": {"min": 0, "max": 2000},
-    "protein": {"min": 0, "max": 2000},
-    "saturated_fat": {"min": 0, "max": 2000},
+    k: v.__dict__ for k, v in cfg.NUTRITION_LIMITS.__dict__.items()
 }
 
 # -------------------------
@@ -43,14 +32,7 @@ def plot_nutriscore_comparison(subset_df: pd.DataFrame, recipe: pd.DataFrame) ->
     """
     Compare NutriScore distributions between all recipes
     and those with 'health' in their tags.
-    Args:
-        subset_df : pd.DataFrame
-            DataFrame with at least a "nutri_score" column
-        recipe : pd.DataFrame
-            Original recipe DataFrame containing "tags"
     """
-
-    # ---- Filter recipes with 'health' in tags ----
     subset_tags = recipe.loc[subset_df.index, "tags"]
 
     health_mask = subset_tags.apply(
@@ -125,11 +107,11 @@ def parse_nutrition(recipe_df: pd.DataFrame) -> pd.DataFrame:
 def filter_data_with_nutri(nutrition_df: pd.DataFrame) -> pd.DataFrame:
     """Filter out extreme values for clean analysis using config limits."""
     mask = pd.Series(True, index=nutrition_df.index)
-    
+
     for nutrient, limits in NUTRITION_LIMITS.items():
         if nutrient in nutrition_df.columns:
             mask &= nutrition_df[nutrient].between(limits["min"], limits["max"], inclusive="both")
-    
+
     return nutrition_df[mask].copy()
 
 def add_nutriscore_column(nutrition_df: pd.DataFrame) -> pd.DataFrame:
@@ -141,11 +123,16 @@ def add_nutriscore_column(nutrition_df: pd.DataFrame) -> pd.DataFrame:
 def correlation_matrix(nutrition_df: pd.DataFrame):
     """Return a matplotlib figure for correlation matrix heatmap."""
     corr_matrix = nutrition_df.corr()
-    fig, ax = plt.subplots(figsize=(8, 6))
+    fig, ax = plt.subplots(figsize=(6, 4))
     sns.heatmap(
         corr_matrix,
-        annot=True, fmt=".2f", cmap="coolwarm", center=0,
-        square=True, cbar_kws={"shrink": .8}, ax=ax
+        annot=True,
+        fmt=".2f",
+        cmap="coolwarm",
+        center=0,
+        square=True,
+        cbar_kws={"shrink": .8},
+        ax=ax
     )
     ax.set_title("Correlation matrix", fontsize=14, pad=12)
     fig.tight_layout()
