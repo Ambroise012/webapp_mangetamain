@@ -1,5 +1,6 @@
 import streamlit as st
-
+import filter_data
+from recipe_complexity import make_corr_heatmap_fig, make_pairplot_fig, make_univariate_figs
 from webapp_mangetamain.load_config import recipe
 from nutriscore_analyzer import (
     parse_nutrition,
@@ -67,6 +68,45 @@ def render_ingredient_tab():
         "Frequancy of ingredient / note per ingredients, time correlated with some ingredient..."
     )
 
+def render_complexity_tab():
+    df = filter_data.recipes_clean
+    """Render the Complexity tab content in Streamlit."""
+    st.header("Complexity")
+    st.markdown(
+        """
+        Explore how **time**, **number of steps**, and **number of ingredients** relate to each other.
+        We first look at each feature individually, then we inspect their relationships (pairplot + correlation matrix).
+        """
+    )
+    
+    st.subheader("Univariate exploration")
+    feature = st.radio(
+        "Choose a feature:",
+        ["minutes", "n_steps", "n_ingredients"],
+        horizontal=True,
+    )
+
+    col1, col2 = st.columns(2)
+    hist_fig, box_fig = make_univariate_figs(df, feature, hue=("kind" if "kind" in df.columns else None))
+    with col1:
+        st.pyplot(hist_fig)
+    with col2:
+        st.pyplot(box_fig)
+    if feature == "minutes":
+        st.caption("ℹ️ Showing **log(minutes)** for readability (long tail).")
+
+    st.subheader("Relationships between features")
+    features_rel = ["log_minutes", "n_steps", "n_ingredients"]
+    pair_fig = make_pairplot_fig(df, features_rel, hue=("kind" if "kind" in df.columns else None))
+    st.pyplot(pair_fig)
+
+    st.subheader("Correlation matrix")
+    corr_fig = make_corr_heatmap_fig(df, features_rel, "Correlation (log_minutes, n_steps, n_ingredients)")
+    st.pyplot(corr_fig)
+    
+    
+    
+    
 def render_other_tab():
     """Render the Other tab content."""
     st.header("Other")
@@ -79,7 +119,7 @@ def main():
     st.title("MangeTaMain Dashboard")
 
     # Create tabs
-    tab1, tab2, tab3, tab4 = st.tabs(["Nutriscore", "Tags", "Ingredient", "Other"])
+    tab1, tab2, tab3, tab4 = st.tabs(["Nutriscore", "Tags", "Ingredient", "Complexity"])
 
     with tab1:
         render_nutriscore_tab()
@@ -89,9 +129,9 @@ def main():
 
     with tab3:
         render_ingredient_tab()
-
+ 
     with tab4:
-        render_other_tab()
+        render_complexity_tab()
 
 if __name__ == "__main__":
     main()
