@@ -1,5 +1,10 @@
 "main function of the stremlit app"
 import streamlit as st
+import numpy as np
+import filter_data
+from recipe_complexity import make_corr_heatmap_fig, make_pairplot_fig, make_univariate_figs
+import ingredients_analyzer
+from webapp_mangetamain.load_config import recipe
 
 from recipe_complexity import make_corr_heatmap_fig, make_pairplot_fig, make_univariate_figs
 from webapp_mangetamain.load_config import recipe, recipe_rating
@@ -225,13 +230,66 @@ def render_tags_tab():
         st.dataframe(easy, hide_index=True)
 
 def render_ingredient_tab():
-    """Render the Ingredient tab content."""
-    st.header("Ingredient")
-    st.subheader("List of ingredients and details")
-    st.write(
-        "Frequancy of ingredient / note per ingredients, time correlated with some ingredient..."
-    )
+    """
+    ingredients_exploded: DataFrame avec colonnes ['id','ingredients'] (déjà normalisées)
+    """
+    st.header("🥕 Ingredients")
 
+    # ===== 1) Distribution & résumé =====
+    st.subheader("Distribution des fréquences")
+    ingredient_counts = filter_data.ingredient_counts
+    print(ingredient_counts)
+    st.dataframe(ingredients_analyzer.summarize_ingredient_stats(ingredient_counts))
+    st.pyplot(ingredients_analyzer.plot_ingredient_distribution(ingredient_counts))
+
+    st.subheader("Top ingrédients")
+    top_n = st.slider("Afficher les N ingrédients les plus fréquents", 10, 100, 30, 5)
+    st.pyplot(ingredients_analyzer.make_top_ingredients_bar_fig(ingredient_counts, top_n))
+
+    # ===== 2) Fenêtre de fréquence =====
+    st.subheader("Sélection de la fenêtre de fréquence")
+    min_count = st.number_input(
+        "min_count (exclure les ingrédients trop rares)",
+        1, int(ingredient_counts["count"].max()), 200
+    )
+    use_max = st.checkbox("Limiter les hyper-fréquents (max_count)", value=True)
+    default_max = 5000
+    max_count = st.number_input(
+        "max_count", min_count, int(ingredient_counts["count"].max()),
+        default_max, step=50
+    ) if use_max else None
+
+    kept_counts = filter_data.filter_counts_window(
+        ingredient_counts, min_count=min_count, max_count=max_count
+    )
+    st.caption(
+        f"Ingrédients conservés: **{len(kept_counts):,}** | "
+        f"Occurrences cumulées: **{kept_counts['count'].sum():,}**"
+    )
+    st.subheader("Focus sur un ingrédient")
+    c1, c2 = st.columns([2, 1])
+    with c1:
+        focus = st.selectbox("Choisir un ingrédient", sorted(filter_data.co_occurrence.columns.to_list()))
+    with c2:
+        k = st.slider("Top K", 5, 40, 15)
+
+    min_co_focus = st.slider("Co-occurrence minimale (|A∩B|) pour le focus", 1, 200, 20)
+    metric = st.radio("Mesure", ["Jaccard"], horizontal=True)
+
+    if metric == "Jaccard":
+        assoc = ingredients_analyzer.top_cooccurrences_for(focus, filter_data.jaccard, filter_data.co_occurrence, k=k, min_co=min_co_focus)
+        x_field, title = "score", f"Top voisins Jaccard avec '{focus}'"
+    else:
+        assoc = ingredients_analyzer.top_conditional_for(focus, filter_data.co_occurrence, k=k, min_co=min_co_focus)
+        x_field, title = "P(B|A)", f"Top co-occurrents (P(B|A)) avec '{focus}'"
+
+    st.pyplot(ingredients_analyzer.make_association_bar_fig(assoc, title, x=x_field))
+    st.dataframe(assoc)
+    
+    
+
+
+   
 def render_complexity_tab():
     df = recipes_clean
     """Render the Complexity tab content in Streamlit."""
@@ -267,6 +325,7 @@ def render_complexity_tab():
     st.subheader("Correlation matrix")
     corr_fig = make_corr_heatmap_fig(df, features_rel, "Correlation (log_minutes, n_steps, n_ingredients)")
     st.pyplot(corr_fig)
+    
     
     
     
