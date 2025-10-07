@@ -1,5 +1,6 @@
+"main function of the stremlit app"
 import streamlit as st
-import filter_data
+
 from recipe_complexity import make_corr_heatmap_fig, make_pairplot_fig, make_univariate_figs
 from webapp_mangetamain.load_config import recipe
 from nutriscore_analyzer import (
@@ -9,6 +10,7 @@ from nutriscore_analyzer import (
     correlation_matrix,
     plot_nutriscore_comparison
 )
+from filter_data import separate_foods_drinks, recipes_clean
 
 def render_nutriscore_tab():
     """Render the Nutriscore tab content in Streamlit."""
@@ -35,10 +37,14 @@ def render_nutriscore_tab():
         other variables (user tags, nutritional values).
         """
     )
-
+    
     # ------------------------
     # Correlation matrix
     # ------------------------
+    st.markdown("""
+    First, we can observe the different Nutri-Score values and their correlations with each other.
+    We already notice that certain categories emerge: the correlations are stronger between calories, sugar, and fat. These negative values are what primarily lower the score.
+    """)
     nutrition_df = parse_nutrition(recipe)
     st.subheader("Correlation Matrix of Nutrients")
     st.pyplot(correlation_matrix(nutrition_df))
@@ -51,6 +57,47 @@ def render_nutriscore_tab():
 
     st.subheader("Comparison with 'health' tagged recipes")
     plot_nutriscore_comparison(scored_df, recipe)
+    st.markdown("""
+        **Something is wrong!**
+
+        We should only see orange "health tag" bars in **categories A and B**.
+        However, we observe that there are also many in **categories D and E**.
+        While the proportion is lower in D, there are actually **more health tags in category E than there are recipes in category E**.
+
+        This discrepancy could be explained by:
+        - Incorrectly entered values,
+        - The fact that **foods and drinks** use different Nutri-Score calculations,
+        - Or the inability to verify whether the data is standardized (e.g., per 100g).
+        """)
+    # ------------------------
+    # Drinks vs Foods
+    # ------------------------
+    st.markdown(
+        """
+        
+        ## Drinks / Foods
+        Note that our dataset includes both drinks and foods. 
+        However, the calculation of the Nutri-Score for drinks differs significantly from that for foods. 
+        Therefore, we focus exclusively on food items, filtering our data and recommendations accordingly.
+        """
+    )
+    food_recipes, drink_recipes = separate_foods_drinks(recipe)
+    st.subheader("Recipe Statistics")
+    st.write(f"**Food recipes:** {len(food_recipes)}")
+    st.write(f"**Drink recipes:** {len(drink_recipes)}")
+    food_nutrition_df = nutrition_df.loc[food_recipes.index]
+    filtered_df_food = filter_data_with_nutri(food_nutrition_df)
+    scored_df_food = add_nutriscore_column(filtered_df_food)
+    plot_nutriscore_comparison(scored_df_food, food_recipes)
+    st.markdown("""
+        **Something is still wrong!**
+
+        We are seen the same patern as before. Even when we remove drinks from recipes.
+
+        T+So this discrepancy could be explained by:
+        - Incorrectly entered values,
+        - Whether the data is standardized (e.g., per 100g).
+        """)
 
 def render_tags_tab():
     """Render the Tags tab content."""
@@ -69,7 +116,7 @@ def render_ingredient_tab():
     )
 
 def render_complexity_tab():
-    df = filter_data.recipes_clean
+    df = recipes_clean
     """Render the Complexity tab content in Streamlit."""
     st.header("Complexity")
     st.markdown(
