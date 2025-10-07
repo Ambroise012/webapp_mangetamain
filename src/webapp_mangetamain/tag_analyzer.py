@@ -5,13 +5,13 @@ Analysis of tags and their relationships with recipe metrics
 
 import ast
 from typing import Dict, List, Tuple
+import streamlit as st
 
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 
 
-# Tags configuration by category
 TAGS_OF_INTEREST = {
     'Cuisine': ['italian', 'mexican', 'asian', 'french', 'chinese', 'greek', 
                 'indian', 'thai', 'japanese', 'spanish', 'middle-eastern'],
@@ -114,99 +114,6 @@ def get_general_tags_statistics(recipes_df: pd.DataFrame) -> Dict[str, any]:
     }
     
     return stats
-
-
-def plot_tags_per_recipe_distribution(recipes_df: pd.DataFrame) -> plt.Figure:
-    """
-    Create a histogram of the distribution of tags per recipe.
-    
-    Args:
-        recipes_df: DataFrame containing a 'tags_parsed' column
-        
-    Returns:
-        Matplotlib Figure
-    """
-    tags_per_recipe = recipes_df['tags_parsed'].apply(len)
-    
-    fig, ax = plt.subplots(figsize=(10, 6))
-    
-    # Create histogram
-    ax.hist(tags_per_recipe, bins=50, color='#636EFA', alpha=0.7, edgecolor='black')
-    
-    # Add mean and median lines
-    mean_val = tags_per_recipe.mean()
-    median_val = tags_per_recipe.median()
-    
-    ax.axvline(mean_val, color='red', linestyle='--', linewidth=2, 
-               label=f'Mean: {mean_val:.1f}')
-    ax.axvline(median_val, color='green', linestyle='--', linewidth=2, 
-               label=f'Median: {median_val:.1f}')
-    
-    ax.set_xlabel('Number of tags per recipe', fontsize=12)
-    ax.set_ylabel('Number of recipes', fontsize=12)
-    ax.set_title('Distribution of number of tags per recipe', fontsize=14, pad=15)
-    ax.legend()
-    ax.grid(axis='y', alpha=0.3)
-    
-    fig.tight_layout()
-    return fig
-
-
-def plot_top_tags(tag_counts: pd.Series, top_n: int = 20) -> plt.Figure:
-    """
-    Create a chart of the most frequent tags.
-    
-    Args:
-        tag_counts: Series with tag counts
-        top_n: Number of tags to display
-        
-    Returns:
-        Matplotlib Figure
-    """
-    top_tags = tag_counts.head(top_n)
-    
-    fig, ax = plt.subplots(figsize=(10, max(8, top_n * 0.4)))
-    
-    # Create horizontal bar chart
-    colors = plt.cm.viridis(top_tags.values / top_tags.values.max())
-    ax.barh(range(len(top_tags)), top_tags.values, color=colors)
-    
-    ax.set_yticks(range(len(top_tags)))
-    ax.set_yticklabels(top_tags.index)
-    ax.set_xlabel('Number of occurrences', fontsize=12)
-    ax.set_ylabel('Tag', fontsize=12)
-    ax.set_title(f'Top {top_n} most frequent tags', fontsize=14, pad=15)
-    ax.invert_yaxis()
-    ax.grid(axis='x', alpha=0.3)
-    
-    fig.tight_layout()
-    return fig
-
-
-def plot_tag_frequency_distribution(tag_counts: pd.Series) -> plt.Figure:
-    """
-    Create a histogram of tag frequency distribution.
-    
-    Args:
-        tag_counts: Series with tag counts
-        
-    Returns:
-        Matplotlib Figure
-    """
-    fig, ax = plt.subplots(figsize=(10, 6))
-    
-    # Create histogram with log scale on y-axis
-    ax.hist(tag_counts.values, bins=50, color='#EF553B', alpha=0.7, edgecolor='black')
-    ax.set_yscale('log')
-    
-    ax.set_xlabel('Number of occurrences per tag', fontsize=12)
-    ax.set_ylabel('Number of tags (log scale)', fontsize=12)
-    ax.set_title('Distribution of tag frequency', fontsize=14, pad=15)
-    ax.grid(axis='both', alpha=0.3)
-    
-    fig.tight_layout()
-    return fig
-
 
 def analyze_tags_distribution(recipes_df: pd.DataFrame) -> pd.DataFrame:
     """
@@ -351,101 +258,6 @@ def plot_top_tags_by_metric(
     fig.tight_layout()
     return fig
 
-
-def plot_categories_comparison(tag_stats_filtered: pd.DataFrame) -> plt.Figure:
-    """
-    Compare tag categories across multiple metrics.
-    
-    Args:
-        tag_stats_filtered: DataFrame with filtered tags and 'category' column
-        
-    Returns:
-        Matplotlib Figure with subplots
-    """
-    category_stats = tag_stats_filtered.groupby('category').agg({
-        'avg_minutes': 'mean',
-        'avg_ingredients': 'mean',
-        'avg_steps': 'mean',
-        'n_recipes': 'sum'
-    }).reset_index()
-    
-    fig, axes = plt.subplots(2, 2, figsize=(14, 10))
-    
-    metrics = [
-        ('avg_minutes', 'Average time (min)', axes[0, 0]),
-        ('avg_ingredients', 'Average ingredients', axes[0, 1]),
-        ('avg_steps', 'Average steps', axes[1, 0]),
-        ('n_recipes', 'Total recipes', axes[1, 1])
-    ]
-    
-    for metric, label, ax in metrics:
-        ax.bar(category_stats['category'], category_stats[metric], 
-               color='lightblue', edgecolor='navy', alpha=0.7)
-        ax.set_ylabel(label, fontsize=11)
-        ax.set_xlabel('Category', fontsize=11)
-        ax.set_title(label, fontsize=12, pad=10)
-        ax.tick_params(axis='x', rotation=45)
-        ax.grid(axis='y', alpha=0.3)
-    
-    fig.suptitle('Comparison of tag categories', fontsize=16, y=0.995)
-    fig.tight_layout()
-    return fig
-
-
-def plot_category_detail(
-    tag_stats_filtered: pd.DataFrame,
-    category: str,
-    metric: str = 'avg_minutes',
-    top_n: int = 10
-) -> plt.Figure:
-    """
-    Create a detailed chart for a specific category.
-    
-    Args:
-        tag_stats_filtered: DataFrame with filtered tags
-        category: Category to display
-        metric: Metric to display
-        top_n: Number of tags to display
-        
-    Returns:
-        Matplotlib Figure
-    """
-    df_cat = tag_stats_filtered[
-        tag_stats_filtered['category'] == category
-    ].copy()
-    
-    # Sort by metric
-    if metric == 'avg_minutes':
-        df_cat = df_cat.nsmallest(top_n, metric)
-    else:
-        df_cat = df_cat.nlargest(top_n, metric)
-    
-    metric_labels = {
-        'avg_minutes': 'Average time (min)',
-        'avg_ingredients': 'Average number of ingredients',
-        'avg_steps': 'Average number of steps',
-        'n_recipes': 'Number of recipes'
-    }
-    
-    fig, ax = plt.subplots(figsize=(10, max(6, top_n * 0.4)))
-    
-    # Create horizontal bar chart
-    colors = plt.cm.viridis(df_cat[metric].values / df_cat[metric].values.max())
-    ax.barh(range(len(df_cat)), df_cat[metric].values, color=colors)
-    
-    ax.set_yticks(range(len(df_cat)))
-    ax.set_yticklabels(df_cat['tag'].values)
-    ax.set_xlabel(metric_labels.get(metric, metric), fontsize=12)
-    ax.set_ylabel('Tag', fontsize=12)
-    ax.set_title(f"{category} - Top {top_n} by {metric_labels.get(metric, metric)}", 
-                 fontsize=14, pad=15)
-    ax.invert_yaxis()
-    ax.grid(axis='x', alpha=0.3)
-    
-    fig.tight_layout()
-    return fig
-
-
 def create_heatmap_tags_metrics(tag_stats_filtered: pd.DataFrame) -> plt.Figure:
     """
     Create a heatmap of tags vs metrics.
@@ -553,3 +365,180 @@ def find_best_tags(
     }
     
     return results
+
+def plot_tags_per_recipe_distribution(recipes_df: pd.DataFrame) -> None:
+    """
+    Create and display a histogram of the distribution of tags per recipe.
+    
+    Args:
+        recipes_df: DataFrame containing a 'tags_parsed' column
+    """
+    tags_per_recipe = recipes_df['tags_parsed'].apply(len)
+    
+    fig, ax = plt.subplots(figsize=(10, 6))
+    
+    # Create histogram
+    ax.hist(tags_per_recipe, bins=50, color='#636EFA', alpha=0.7, edgecolor='black')
+    
+    # Add mean and median lines
+    mean_val = tags_per_recipe.mean()
+    median_val = tags_per_recipe.median()
+    
+    ax.axvline(mean_val, color='red', linestyle='--', linewidth=2, 
+               label=f'Mean: {mean_val:.1f}')
+    ax.axvline(median_val, color='green', linestyle='--', linewidth=2, 
+               label=f'Median: {median_val:.1f}')
+    
+    ax.set_xlabel('Number of tags per recipe', fontsize=12)
+    ax.set_ylabel('Number of recipes', fontsize=12)
+    ax.set_title('Distribution of number of tags per recipe', fontsize=14, pad=15)
+    ax.legend()
+    ax.grid(axis='y', alpha=0.3)
+    
+    fig.tight_layout()
+    st.pyplot(fig)  
+    plt.close(fig) 
+
+
+def plot_top_tags(tag_counts: pd.Series, top_n: int = 20) -> None:
+    """
+    Create and display a chart of the most frequent tags.
+    
+    Args:
+        tag_counts: Series with tag counts
+        top_n: Number of tags to display
+    """
+    top_tags = tag_counts.head(top_n)
+    
+    fig, ax = plt.subplots(figsize=(10, max(8, top_n * 0.4)))
+    
+    # Create horizontal bar chart
+    colors = plt.cm.viridis(top_tags.values / top_tags.values.max())
+    ax.barh(range(len(top_tags)), top_tags.values, color=colors)
+    
+    ax.set_yticks(range(len(top_tags)))
+    ax.set_yticklabels(top_tags.index)
+    ax.set_xlabel('Number of occurrences', fontsize=12)
+    ax.set_ylabel('Tag', fontsize=12)
+    ax.set_title(f'Top {top_n} most frequent tags', fontsize=14, pad=15)
+    ax.invert_yaxis()
+    ax.grid(axis='x', alpha=0.3)
+    
+    fig.tight_layout()
+    st.pyplot(fig) 
+    plt.close(fig)
+
+
+def plot_tag_frequency_distribution(tag_counts: pd.Series) -> None:
+    """
+    Create and display a histogram of tag frequency distribution.
+    
+    Args:
+        tag_counts: Series with tag counts
+    """
+    fig, ax = plt.subplots(figsize=(10, 6))
+    
+    # Create histogram with log scale on y-axis
+    ax.hist(tag_counts.values, bins=50, color='#EF553B', alpha=0.7, edgecolor='black')
+    ax.set_yscale('log')
+    
+    ax.set_xlabel('Number of occurrences per tag', fontsize=12)
+    ax.set_ylabel('Number of tags (log scale)', fontsize=12)
+    ax.set_title('Distribution of tag frequency', fontsize=14, pad=15)
+    ax.grid(axis='both', alpha=0.3)
+    
+    fig.tight_layout()
+    st.pyplot(fig) 
+    plt.close(fig)
+
+
+def plot_categories_comparison(tag_stats_filtered: pd.DataFrame) -> None:
+    """
+    Compare and display tag categories across multiple metrics.
+    
+    Args:
+        tag_stats_filtered: DataFrame with filtered tags and 'category' column
+    """
+    category_stats = tag_stats_filtered.groupby('category').agg({
+        'avg_minutes': 'mean',
+        'avg_ingredients': 'mean',
+        'avg_steps': 'mean',
+        'n_recipes': 'sum'
+    }).reset_index()
+    
+    fig, axes = plt.subplots(2, 2, figsize=(14, 10))
+    
+    metrics = [
+        ('avg_minutes', 'Average time (min)', axes[0, 0]),
+        ('avg_ingredients', 'Average ingredients', axes[0, 1]),
+        ('avg_steps', 'Average steps', axes[1, 0]),
+        ('n_recipes', 'Total recipes', axes[1, 1])
+    ]
+    
+    for metric, label, ax in metrics:
+        ax.bar(category_stats['category'], category_stats[metric], 
+               color='lightblue', edgecolor='navy', alpha=0.7)
+        ax.set_ylabel(label, fontsize=11)
+        ax.set_xlabel('Category', fontsize=11)
+        ax.set_title(label, fontsize=12, pad=10)
+        ax.tick_params(axis='x', rotation=45)
+        ax.grid(axis='y', alpha=0.3)
+    
+    fig.suptitle('Comparison of tag categories', fontsize=16, y=0.995)
+    fig.tight_layout()
+    st.pyplot(fig) 
+    plt.close(fig)
+
+
+def plot_category_detail(
+    tag_stats_filtered: pd.DataFrame,
+    category: str,
+    metric: str = 'avg_minutes',
+    top_n: int = 10
+) -> None:
+    """
+    Create and display a detailed chart for a specific category.
+    
+    Args:
+        tag_stats_filtered: DataFrame with filtered tags
+        category: Category to display
+        metric: Metric to display
+        top_n: Number of tags to display
+    """
+    df_cat = tag_stats_filtered[
+        tag_stats_filtered['category'] == category
+    ].copy()
+    
+    # Sort by metric
+    if metric == 'avg_minutes':
+        df_cat = df_cat.nsmallest(top_n, metric)
+    else:
+        df_cat = df_cat.nlargest(top_n, metric)
+    
+    metric_labels = {
+        'avg_minutes': 'Average time (min)',
+        'avg_ingredients': 'Average number of ingredients',
+        'avg_steps': 'Average number of steps',
+        'n_recipes': 'Number of recipes'
+    }
+    
+    fig, ax = plt.subplots(figsize=(10, max(6, top_n * 0.4)))
+    
+    # Create horizontal bar chart
+    colors = plt.cm.viridis(df_cat[metric].values / df_cat[metric].values.max())
+    ax.barh(range(len(df_cat)), df_cat[metric].values, color=colors)
+    
+    ax.set_yticks(range(len(df_cat)))
+    ax.set_yticklabels(df_cat['tag'].values)
+    ax.set_xlabel(metric_labels.get(metric, metric), fontsize=12)
+    ax.set_ylabel('Tag', fontsize=12)
+    ax.set_title(f"{category} - Top {top_n} by {metric_labels.get(metric, metric)}", 
+                 fontsize=14, pad=15)
+    ax.invert_yaxis()
+    ax.grid(axis='x', alpha=0.3)
+    
+    fig.tight_layout()
+    st.pyplot(fig)  
+    plt.close(fig)
+
+

@@ -124,15 +124,14 @@ def add_nutriscore_column(nutrition_df: pd.DataFrame) -> pd.DataFrame:
 def correlation_matrix(nutrition_df: pd.DataFrame):
     """Return a matplotlib figure for correlation matrix heatmap."""
     corr_matrix = nutrition_df.corr()
-    fig, ax = plt.subplots(figsize=(6, 4))
+    fig, ax = plt.subplots(figsize=(5.5, 4.5))
     sns.heatmap(
         corr_matrix,
         annot=True,
         fmt=".2f",
         cmap="coolwarm",
-        center=0,
-        square=True,
-        cbar_kws={"shrink": .8},
+        vmin=-1,
+        vmax=1,
         ax=ax
     )
     ax.set_title("Correlation matrix", fontsize=14, pad=12)

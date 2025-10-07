@@ -27,3 +27,4 @@ CONFIG_PATH = os.path.abspath(CONFIG_PATH)
 cfg = Config.from_json(CONFIG_PATH)
 
 recipe = pd.read_csv(cfg.data_path)
+recipe_rating = pd.read_csv(cfg.data_rating_path)
