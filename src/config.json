@@ -1,6 +1,7 @@
 {
     "data_path": "data/RAW_recipes.csv",
     "data_rating_path": "data/recipes_with_ratings.csv",
+    "health_keywords": ["health", "healthy", "fit", "diet", "balance", "wellness"],
     "DRINK_KEYWORDS": [
       "\\bbeverage(s)?\\b",
       "\\bdrink(s)?\\b",

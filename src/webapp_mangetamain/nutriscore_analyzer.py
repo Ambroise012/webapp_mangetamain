@@ -9,7 +9,6 @@ import matplotlib.pyplot as plt
 
 from webapp_mangetamain.load_config import cfg
 
-
 # -------------------------
 # Configuration setup
 # -------------------------
@@ -137,3 +136,79 @@ def correlation_matrix(nutrition_df: pd.DataFrame):
     ax.set_title("Correlation matrix", fontsize=14, pad=12)
     fig.tight_layout()
     return fig
+
+def analyze_low_scores_with_health_label(recipe_df: pd.DataFrame,
+                                         nutrition_df: pd.DataFrame,
+                                         health_keywords: list = None,
+                                         join_tags: bool = False) -> pd.DataFrame:
+    """
+    Displays a table of Nutri-Score D/E recipes and keeps only the tags corresponding to health keywords (health, healthy, diet, fit, etc.) in the ‘tags’ column.
+    - recipe_df must contain at least the ‘name’ and ‘tags’ columns.
+    - nutrition_df must contain the ‘nutri_score’ column.
+    - join_tags: if True, tags are displayed as a string “tag1, tag2”, otherwise as a list [‘tag1’,'tag2'].
+    Returns the final filtered DataFrame.
+    - join_tags: if True, tags are displayed as a string “tag1, tag2”,
+                 otherwise as a list [‘tag1’,'tag2'].
+    Returns the final filtered DataFrame.
+    """
+
+    health_keywords = cfg.health_keywords
+    # for D and E score
+    low_idx = nutrition_df[nutrition_df["nutri_score"].isin(["D", "E"])].index
+    if len(low_idx) == 0:
+        st.info("Aucune recette avec Nutri-Score D ou E.")
+        return pd.DataFrame()
+
+    subset = recipe_df.loc[low_idx, recipe_df.columns.intersection(["name", "tags"])].copy()
+
+    def parse_tags(raw):
+        """Parse différents formats de tags en liste de chaînes propres."""
+        if pd.isna(raw):
+            return []
+        if isinstance(raw, (list, tuple, set)):
+            return [str(x).strip() for x in raw if x is not None]
+        if isinstance(raw, str):
+            s = raw.strip()
+            try:
+                parsed = ast.literal_eval(s)
+                if isinstance(parsed, (list, tuple, set)):
+                    return [str(x).strip() for x in parsed if x is not None]
+                return [str(parsed).strip()]
+            except Exception:
+                parts = [p.strip() for p in s.replace("|", ",").split(",") if p.strip()]
+                return parts
+        return [str(raw).strip()]
+
+    def extract_health_tags(raw):
+        """Return the sub-list of tags containing a health-like keyword (case-insensitive)."""
+        parsed = parse_tags(raw)
+        found = []
+        for t in parsed:
+            tl = t.lower()
+            if any(k in tl for k in health_keywords):
+                found.append(t)
+        return found
+
+    subset["health_tags"] = subset["tags"].apply(extract_health_tags)
+
+    filtered = subset[subset["health_tags"].apply(bool)].copy()
+    if filtered.empty:
+        return pd.DataFrame()
+
+    if join_tags:
+        filtered["tags"] = filtered["health_tags"].apply(lambda lst: ", ".join(lst))
+    else:
+        filtered["tags"] = filtered["health_tags"]
+
+    filtered["nutri_score"] = nutrition_df.loc[filtered.index, "nutri_score"]
+
+    if "name" not in filtered.columns:
+        filtered = filtered.reset_index().rename(columns={"index": "name"})
+        filtered["name"] = filtered["name"].astype(str)
+
+    final_df = filtered[["name", "tags", "nutri_score"]].reset_index(drop=True)
+
+    st.subheader('Recipe D/E and their "health"-like tags')
+    st.dataframe(final_df)
+
+    return final_df

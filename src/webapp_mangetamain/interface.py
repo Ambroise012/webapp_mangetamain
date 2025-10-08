@@ -13,7 +13,8 @@ from nutriscore_analyzer import (
     filter_data_with_nutri,
     add_nutriscore_column,
     correlation_matrix,
-    plot_nutriscore_comparison
+    plot_nutriscore_comparison,
+    analyze_low_scores_with_health_label
 )
 
 from tag_analyzer import (
@@ -114,6 +115,7 @@ def render_nutriscore_tab():
         - Incorrectly entered values,
         - Whether the data is standardized (e.g., per 100g).
         """)
+    analyze_low_scores_with_health_label(recipe_df=food_recipes, nutrition_df=scored_df_food)
 
 def render_tags_tab():
     """Render the Tags tab content."""
@@ -212,20 +214,20 @@ def render_tags_tab():
     col1, col2 = st.columns(2)
     
     with col1:
-        st.write("**⚡ Fastest (by avg time):**")
+        st.write("**Fastest (by avg time):**")
         fastest = tags_of_interest.nsmallest(5, 'avg_minutes')[['tag', 'category', 'avg_minutes', 'n_recipes']]
         st.dataframe(fastest, hide_index=True)
         
-        st.write("**🎯 Simplest (fewest ingredients):**")
+        st.write("**Simplest (fewest ingredients):**")
         simplest = tags_of_interest.nsmallest(5, 'avg_ingredients')[['tag', 'category', 'avg_ingredients', 'n_recipes']]
         st.dataframe(simplest, hide_index=True)
     
     with col2:
-        st.write("**⭐ Most Popular:**")
+        st.write("**Most Popular:**")
         popular = tags_of_interest.nlargest(5, 'n_recipes')[['tag', 'category', 'n_recipes', 'avg_minutes']]
         st.dataframe(popular, hide_index=True)
         
-        st.write("**📝 Fewest Steps:**")
+        st.write("**Fewest Steps:**")
         easy = tags_of_interest.nsmallest(5, 'avg_steps')[['tag', 'category', 'avg_steps', 'n_recipes']]
         st.dataframe(easy, hide_index=True)
 
