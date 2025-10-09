@@ -1,8 +1,8 @@
+"""Utils functions for ingredient part."""
 import matplotlib.pyplot as plt
 import seaborn as sns
 import numpy as np
 import pandas as pd
-
 
 def plot_ingredient_distribution(ingredient_counts: pd.DataFrame):
     """
@@ -19,7 +19,6 @@ def summarize_ingredient_stats(ingredient_counts: pd.DataFrame) -> pd.DataFrame:
     """
     Compute and return quantile summary (describe + percentiles).
     """
-    print(ingredient_counts.head)
     quantiles = ingredient_counts["count"].describe(
         percentiles=[0.5, 0.75, 0.9, 0.95, 0.99]
     )
@@ -66,7 +65,6 @@ def make_counts_boxplot_fig(ingredient_counts: pd.DataFrame) -> plt.Figure:
 def top_cooccurrences_for(ingredient, jaccard, co_occurrence, k=15, min_co=20):
     ing = ingredient.lower().strip()
     if ing not in jaccard.index:
-        print(f"'{ingredient}' n'existe pas dans la matrice.")
         return pd.DataFrame()
 
     # ligne Jaccard + co-occurrence

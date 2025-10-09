@@ -1,8 +1,8 @@
 """Load config from config.json"""
 import json
 import os
-import pandas as pd
 
+import pandas as pd
 
 class Config:
     """Simple config loader that allows attribute-style access."""

@@ -1,12 +1,10 @@
 "main function of the stremlit app"
 import streamlit as st
-import numpy as np
-import filter_data
+import logging
+
+import utils.filter_data as filter_data
 from recipe_complexity import make_corr_heatmap_fig, make_pairplot_fig, make_univariate_figs
 import ingredients_analyzer
-from webapp_mangetamain.load_config import recipe
-
-from recipe_complexity import make_corr_heatmap_fig, make_pairplot_fig, make_univariate_figs
 from webapp_mangetamain.load_config import recipe, recipe_rating
 from nutriscore_analyzer import (
     parse_nutrition,
@@ -16,7 +14,6 @@ from nutriscore_analyzer import (
     plot_nutriscore_comparison,
     analyze_low_scores_with_health_label
 )
-
 from tag_analyzer import (
     get_general_tags_statistics,
     plot_tags_per_recipe_distribution,
@@ -26,8 +23,10 @@ from tag_analyzer import (
     create_tag_recipes_dataset,
     plot_tag_frequency_distribution
     )
+from utils.filter_data import separate_foods_drinks, recipes_clean
 
-from filter_data import separate_foods_drinks, recipes_clean
+logger = logging.getLogger(__name__)
+
 
 def render_nutriscore_tab():
     """Render the Nutriscore tab content in Streamlit."""
@@ -235,12 +234,13 @@ def render_ingredient_tab():
     """
     ingredients_exploded: DataFrame avec colonnes ['id','ingredients'] (déjà normalisées)
     """
-    st.header("🥕 Ingredients")
+    st.header("Ingredients")
 
     # ===== 1) Distribution & résumé =====
     st.subheader("Distribution des fréquences")
     ingredient_counts = filter_data.ingredient_counts
-    print(ingredient_counts)
+    logger.info(f"Ingredient count:{ingredient_counts}")
+
     st.dataframe(ingredients_analyzer.summarize_ingredient_stats(ingredient_counts))
     st.pyplot(ingredients_analyzer.plot_ingredient_distribution(ingredient_counts))
 
@@ -288,10 +288,6 @@ def render_ingredient_tab():
     st.pyplot(ingredients_analyzer.make_association_bar_fig(assoc, title, x=x_field))
     st.dataframe(assoc)
     
-    
-
-
-   
 def render_complexity_tab():
     df = recipes_clean
     """Render the Complexity tab content in Streamlit."""
@@ -327,10 +323,6 @@ def render_complexity_tab():
     st.subheader("Correlation matrix")
     corr_fig = make_corr_heatmap_fig(df, features_rel, "Correlation (log_minutes, n_steps, n_ingredients)")
     st.pyplot(corr_fig)
-    
-    
-    
-    
     
 def render_other_tab():
     """Render the Other tab content."""

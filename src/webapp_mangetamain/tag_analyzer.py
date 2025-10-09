@@ -9,8 +9,6 @@ import streamlit as st
 
 import pandas as pd
 import matplotlib.pyplot as plt
-import seaborn as sns
-
 
 TAGS_OF_INTEREST = {
     'Cuisine': ['italian', 'mexican', 'asian', 'french', 'chinese', 'greek', 
