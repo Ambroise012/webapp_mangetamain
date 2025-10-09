@@ -1,19 +1,21 @@
+"""Create csv files in /artifact."""
+from pathlib import Path
+import logging 
+
 import numpy as np 
 import pandas as pd 
-import filter_data
-from pathlib import Path
 
+import utils.filter_data as filter_data
+
+logger = logging.getLogger("__name__")
 
 def generate_matrix():
     top_ingredients = filter_data.ingredient_counts
     ingredients_exploded = filter_data.ingredients_exploded
     relevant_ingredients = top_ingredients[(top_ingredients > 100)  & (top_ingredients < 5000) ]
-    print(relevant_ingredients)
-
 
     relevant_ingredients_exploded = ingredients_exploded[ingredients_exploded["ingredients"].str.lower().isin(relevant_ingredients.index)]
     relevant_ingredients_exploded = relevant_ingredients_exploded[["id", "ingredients"]]
-    print(relevant_ingredients_exploded.head())
 
     bin_df = (
         relevant_ingredients_exploded
@@ -32,16 +34,14 @@ def generate_matrix():
         columns=co_occurrence.columns)
 
 
-    # 1) Renommer les axes pour éviter le conflit lors de reset_index
     jacc = jaccard.copy()
     jacc.index.name = "ing_a"
     jacc.columns.name = "ing_b"
 
-    # 2) Enlever la diagonale (self-similarity)
     np.fill_diagonal(jacc.values, 0.0)
 
     min_co = 10
-    co = (bin_df.T @ bin_df).astype(int)         # matrice de co-occurrence brute
+    co = (bin_df.T @ bin_df).astype(int) 
     co.index.name = "ing_a"
     co.columns.name = "ing_b"
     mask = co >= min_co
@@ -49,21 +49,18 @@ def generate_matrix():
 
     pairs = (
         jacc_filt.stack()
-                .reset_index(name="score")      # plus de conflit de nom
+                .reset_index(name="score")   
                 .query("ing_a < ing_b and score > 0")
                 .sort_values("score", ascending=False)
     )
-
-    print(len(relevant_ingredients))
-    print(len(pairs))
-
-
+    logger.info("Nb relevant ingredients: ", len(relevant_ingredients))
+    logger.info(len(pairs))
 
     path = Path("artifacts")
     path.mkdir(exist_ok=True)
 
-    print(co_occurrence.head())
-    print(jaccard.head())
+    logger.info("co occurence: ", co_occurrence.head())
+    logger.info(jaccard.head())
 
     co_occurrence.to_csv("artifacts/co_occurrence.csv")
     jaccard.to_csv("artifacts/jaccard.csv")

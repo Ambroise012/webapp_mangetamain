@@ -1,5 +1,4 @@
 import pandas as pd
-import numpy as np
 import seaborn as sns
 import matplotlib.pyplot as plt
 
@@ -30,7 +29,6 @@ def make_univariate_figs(df: pd.DataFrame, feature: str, hue: str | None = None)
     box_fig.tight_layout()
 
     return hist_fig, box_fig
-
 
 
 def make_pairplot_fig(df: pd.DataFrame, features: list[str], hue: str | None = None):

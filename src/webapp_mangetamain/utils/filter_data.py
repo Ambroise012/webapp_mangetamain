@@ -1,12 +1,9 @@
-"""filter drinks and foods"""
+"""filter drinks and foods, and """
+import re
+
 import pandas as pd
 import numpy as np
-import load_config
 import ast
-
-
-recipes = load_config.recipe
-import re
 
 from webapp_mangetamain.load_config import cfg, recipe
 
@@ -25,7 +22,7 @@ def general_complexity_prepocessing(df: pd.DataFrame):
     return df
 
 
-recipes_clean = general_complexity_prepocessing(recipes)
+recipes_clean = general_complexity_prepocessing(recipe)
 
 
 def parse_ingredients_column(df: pd.DataFrame) -> pd.DataFrame:
@@ -33,10 +30,8 @@ def parse_ingredients_column(df: pd.DataFrame) -> pd.DataFrame:
     Transforme la colonne 'ingredients' en une vraie liste Python
     et crée un DataFrame (id, ingredient) propre pour analyse.
     """
-    # 1️⃣ on garde seulement les colonnes utiles
     df = df[["id", "ingredients"]].copy()
 
-    # 2️⃣ parser les listes de chaînes de caractères
     def parse_list(x):
         if isinstance(x, list):
             return x
@@ -53,10 +48,8 @@ def parse_ingredients_column(df: pd.DataFrame) -> pd.DataFrame:
 
     df["ingredients"] = df["ingredients"].apply(parse_list)
 
-    # 3️⃣ exploser pour avoir 1 ligne = 1 ingrédient par recette
     exploded = df.explode("ingredients").dropna(subset=["ingredients"])
 
-    # 4️⃣ nettoyer un peu les noms
     exploded["ingredients"] = (
         exploded["ingredients"]
         .astype(str)

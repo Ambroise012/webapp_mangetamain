@@ -42,12 +42,21 @@ hatch env remove default
 hatch env create
 ```
 
+#### Create matrix
+in a folder artifacts
+
+create `co_occurence.csv` and `jaccard.csv` with 
+
+...
+
+
 
 ## 📂 Project Structure
 
 ```
 webapp_mangetamain/
 ├── data/                   # CSV files
+├── artifacts/              # create CSV with ingredient_data_process.py
 ├── src/
 │   └── webapp_mangetamain/
 │       ├── __init__.py   
