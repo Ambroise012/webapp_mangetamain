@@ -38,6 +38,7 @@ hatch shell
 hatch run webapp
 
 # Utilities
+exit
 hatch env remove default
 hatch env create
 ```
@@ -66,7 +67,11 @@ webapp_mangetamain/
 ├── README.md
 ├── pyproject.toml          # Project config
 ```
-
+test :
+```
+hatch run test # unit test
+hatch run lint # pep8...
+```
 ---
 
 ## 🖥️ Interface
@@ -77,5 +82,11 @@ webapp_mangetamain/
 http://localhost:8501
 ```
 
-## 📄 License
+![CI](https://github.com/Ambroise012/webapp-mangetamain/actions/workflows/ci.yml/badge.svg)
+
+
+## Deployement
+
+Dockerfile
+
 
