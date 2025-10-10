@@ -3,8 +3,8 @@ import ast
 from typing import Dict
 
 import pandas as pd
-import streamlit as st
-import seaborn as sns
+import streamlit as st # type: ignore
+import seaborn as sns # type: ignore
 import matplotlib.pyplot as plt
 
 from webapp_mangetamain.load_config import cfg

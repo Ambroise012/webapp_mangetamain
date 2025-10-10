@@ -1,9 +1,9 @@
 """Create csv files in /artifact."""
 from pathlib import Path
-import logging 
+import logging
 
-import numpy as np 
-import pandas as pd 
+import numpy as np
+import pandas as pd
 
 import utils.filter_data as filter_data
 
@@ -41,7 +41,7 @@ def generate_matrix():
     np.fill_diagonal(jacc.values, 0.0)
 
     min_co = 10
-    co = (bin_df.T @ bin_df).astype(int) 
+    co = (bin_df.T @ bin_df).astype(int)
     co.index.name = "ing_a"
     co.columns.name = "ing_b"
     mask = co >= min_co
@@ -49,7 +49,7 @@ def generate_matrix():
 
     pairs = (
         jacc_filt.stack()
-                .reset_index(name="score")   
+                .reset_index(name="score")
                 .query("ing_a < ing_b and score > 0")
                 .sort_values("score", ascending=False)
     )

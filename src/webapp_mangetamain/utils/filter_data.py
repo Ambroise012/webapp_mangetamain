@@ -9,14 +9,14 @@ from webapp_mangetamain.load_config import cfg, recipe
 
 def general_complexity_prepocessing(df: pd.DataFrame):
     df = df.copy()
-    
+
     for c in ["minutes", "n_steps", "n_ingredients"]:
         df = df[df[c] > 0]
 
     for c in ["minutes", "n_steps", "n_ingredients"]:
         q = df[c].quantile(0.99)
         df = df[df[c] <= q]
-        
+
         df["log_minutes"] = np.log1p(df["minutes"])
 
     return df
@@ -57,7 +57,7 @@ def parse_ingredients_column(df: pd.DataFrame) -> pd.DataFrame:
         .str.strip()
     )
 
-    return exploded 
+    return exploded
 
 
 def preprocess_ingredients(df: pd.DataFrame) -> pd.DataFrame:

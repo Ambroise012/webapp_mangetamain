@@ -1,5 +1,5 @@
 import pandas as pd
-import seaborn as sns
+import seaborn as sns # tyoe: ignore
 import matplotlib.pyplot as plt
 
 def make_univariate_figs(df: pd.DataFrame, feature: str, hue: str | None = None):
