@@ -1,6 +1,5 @@
 import pytest
 import pandas as pd
-import ast
 import matplotlib.pyplot as plt
 import sys
 import os
@@ -164,8 +163,7 @@ def test_parse_nutrition_with_invalid_format():
     try:
         result = parse_nutrition(df)
         assert isinstance(result, pd.DataFrame)
-    except:
-        # If exception is raised, it's acceptable
+    except Exception:
         pass
 
 

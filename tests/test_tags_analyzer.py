@@ -1,6 +1,5 @@
 import pytest
 import pandas as pd
-import matplotlib.pyplot as plt
 import sys
 import os
 
@@ -17,7 +16,6 @@ from src.webapp_mangetamain.tag_analyzer import (
     get_summary_statistics,
     find_best_tags,
 )
-
 
 # ==================== FIXTURES ====================
 
@@ -142,7 +140,6 @@ def test_complete_workflow(sample_recipes_df):
     """Test complete workflow."""
     stats = get_general_tags_statistics(sample_recipes_df)
     tag_stats, _ = create_tag_recipes_dataset(sample_recipes_df, min_recipes_per_tag=1)
-    filtered = filter_tags_of_interest(tag_stats)
 
     assert stats is not None
     assert len(tag_stats) > 0
