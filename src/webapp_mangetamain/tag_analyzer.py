@@ -96,6 +96,7 @@ def get_general_tags_statistics(recipes_df: pd.DataFrame) -> Dict[str, any]:
 
     # Count occurrences
     tag_counts = pd.Series(all_tags).value_counts()
+    avg_tags_general = len(all_tags) / len(tag_counts) if len(tag_counts) > 0 else 0
 
     stats = {
         'total_recipes': len(recipes_df),
@@ -106,7 +107,7 @@ def get_general_tags_statistics(recipes_df: pd.DataFrame) -> Dict[str, any]:
         'tags_per_recipe_max': tags_per_recipe.max(),
         'total_unique_tags': len(tag_counts),
         'total_tags': len(all_tags),
-        'avg_tags_general': len(all_tags) / len(tag_counts),
+        'avg_tags_general': avg_tags_general,
         'tag_counts_stats': tag_counts.describe(),
         'top_20_tags': tag_counts.head(20)
     }
