@@ -133,7 +133,10 @@ The app can be deployed using the provided **Dockerfile**.
 * Pull directly from Docker Hub:
 
 ```bash
-docker pull ambroise012/webapp_mangetamain
+docker pull ambroise012/webapp_mangetamain:0.1.1
+# test in local 
+docker run -p 8501:8501 ambroise012/webapp_mangetamain:0.1.1
+# see result : 👉 http://localhost:8501
 ```
 
 ---
