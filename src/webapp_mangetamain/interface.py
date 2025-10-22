@@ -26,6 +26,9 @@ from tag_analyzer import (
     plot_top_tags,
     plot_top_tags_by_metric,
 )
+
+from local_food import plot_cuisine_distributions, plot_top_ingredients_by_continent
+
 from utils.filter_data import recipes_clean, separate_foods_drinks
 
 from webapp_mangetamain.load_config import recipe, recipe_rating
@@ -219,18 +222,32 @@ def render_tags_tab():
         easy = tags_of_interest.nsmallest(5, 'avg_steps')[['tag', 'category', 'avg_steps', 'n_recipes']]
         st.dataframe(easy, hide_index=True)
 
-def render_ingredient_tab():
 
+def render_ingredient_tab():
     """
     ingredients_exploded: DataFrame avec colonnes ['id','ingredients'] (déjà normalisées)
     """
-    st.header("Ingredients")
+    st.header("🥕 Ingredients")
 
-    # ===== 1) Distribution & résumé =====
+    # === 1) Statistiques globales ===
+    n_recettes = filter_data.ingredients_exploded["id"].nunique()
+    n_ingredients_uniques = filter_data.ingredient_counts.shape[0]
+    mean_ingredients_per_recipe = (
+        filter_data.ingredients_exploded.groupby("id")["ingredients"].nunique().mean()
+    )
+
+    col1, col2, col3 = st.columns(3)
+    col1.metric("Ingrédients uniques", f"{n_ingredients_uniques:,}")
+    col2.metric("Recettes", f"{n_recettes:,}")
+    col3.metric("Moy. ingrédients / recette", f"{mean_ingredients_per_recipe:.2f}")
+
+    st.divider()
+    # ===== 2) Distribution & résumé =====
+    st.subheader("Distribution du nombre d’ingrédients par recette")
+    st.pyplot(ingredients_analyzer.plot_ingredient_per_recette(filter_data.ingredients_exploded))
+
     st.subheader("Distribution des fréquences")
     ingredient_counts = filter_data.ingredient_counts
-    logger.info(f"Ingredient count:{ingredient_counts}")
-
     st.dataframe(ingredients_analyzer.summarize_ingredient_stats(ingredient_counts))
     st.pyplot(ingredients_analyzer.plot_ingredient_distribution(ingredient_counts))
 
@@ -238,7 +255,7 @@ def render_ingredient_tab():
     top_n = st.slider("Afficher les N ingrédients les plus fréquents", 10, 100, 30, 5)
     st.pyplot(ingredients_analyzer.make_top_ingredients_bar_fig(ingredient_counts, top_n))
 
-    # ===== 2) Fenêtre de fréquence =====
+    # ===== 3) Fenêtre de fréquence =====
     st.subheader("Sélection de la fenêtre de fréquence")
     min_count = st.number_input(
         "min_count (exclure les ingrédients trop rares)",
@@ -314,11 +331,62 @@ def render_complexity_tab():
     corr_fig = make_corr_heatmap_fig(df, features_rel, "Correlation (log_minutes, n_steps, n_ingredients)")
     st.pyplot(corr_fig)
 
+
 def render_other_tab():
     """Render the Other tab content."""
     st.header("Other")
     st.subheader("Additional section placeholder")
     st.info("This tab can be customized for additional features.")
+
+
+def render_local_food_tab():
+    """
+    Onglet Streamlit : Analyse des cuisines par continent.
+    """
+    st.header("🌍 Analyse des cuisines par continent")
+
+    # === Chargement des données ===
+    recipes_with_continent = filter_data.recipes_with_continent
+    ingredient_and_continent = filter_data.ingredient_and_continent  # ou ton DataFrame global
+
+    st.caption(f"Nombre total de recettes : **{len(recipes_with_continent):,}**")
+
+    # === 1) Distribution globale (temps, étapes, ingrédients) ===
+    st.subheader("📦 Distribution des caractéristiques par continent")
+    st.pyplot(plot_cuisine_distributions(recipes_with_continent))
+
+    # === 2) Ingrédients typiques ===
+    st.subheader("🥕 Ingrédients typiques par continent")
+
+    top_n = st.slider(
+        "Nombre d'ingrédients à afficher par continent",
+        min_value=5, max_value=30, value=10, step=1
+    )
+
+    threshold = st.slider(
+        "Seuil d'omniprésence (exclusion des ingrédients présents dans plus de X% des recettes)",
+        min_value=0.05, max_value=1.0, value=0.3, step=0.05
+    ) / 100
+
+    st.caption(
+        f"Les ingrédients apparaissant dans plus de **{int(threshold * 100)}%** des recettes "
+        f"sont exclus pour éviter les biais (ex: *salt*, *water*, etc.)."
+    )
+
+    st.pyplot(
+        plot_top_ingredients_by_continent(
+            ingredient_and_continent,
+            top_n=top_n,
+            global_threshold=threshold
+        )
+    )
+
+    # === 3) Infos supplémentaires ===
+    st.info(
+        "💡 Astuce : essaye de baisser le seuil d'omniprésence (vers 10–20%) pour faire ressortir les ingrédients caractéristiques de chaque cuisine."
+    )
+
+
 
 def main():
     """Main function to run the MangeTaMain Dashboard."""
@@ -326,7 +394,7 @@ def main():
     st.title("MangeTaMain Dashboard")
 
     # Create tabs
-    tab1, tab2, tab3, tab4 = st.tabs(["Nutriscore", "Tags", "Ingredient", "Complexity"])
+    tab1, tab2, tab3, tab4 , tab5 = st.tabs(["Nutriscore", "Tags", "Ingredient", "Complexity", "Local Food"])
 
     with tab1:
         render_nutriscore_tab()
@@ -339,6 +407,10 @@ def main():
 
     with tab4:
         render_complexity_tab()
+
+    with tab5:
+        render_local_food_tab()
+
 
 if __name__ == "__main__":
     main()
