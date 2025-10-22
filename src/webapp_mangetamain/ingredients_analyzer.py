@@ -1,15 +1,23 @@
-"""Utils functions for ingredient part."""
 import matplotlib.pyplot as plt
 import seaborn as sns
 import numpy as np
 import pandas as pd
+
+def plot_ingredient_per_recette(ingredients_exploded: pd.DataFrame):
+    counts_per_recipe = ingredients_exploded.groupby("id")["ingredients"].nunique()
+    fig1, ax1 = plt.subplots(figsize=(7, 3))
+    sns.histplot(counts_per_recipe, bins=30, kde=True, color="skyblue", ax=ax1)
+    ax1.set_xlabel("Nombre d'ingrédients par recette")
+    ax1.set_ylabel("Nombre de recettes")
+    return fig1
+
 
 def plot_ingredient_distribution(ingredient_counts: pd.DataFrame):
     """
     Return matplotlib figure: log-scaled boxplot of ingredient frequencies.
     """
     fig, ax = plt.subplots(figsize=(7, 4))
-    sns.boxplot(x=np.log1p(ingredient_counts["count"]), ax=ax)
+    sns.histplot(np.log1p(ingredient_counts["count"].values), bins=50, kde=True, color="salmon", ax=ax)
     ax.set_title("Distribution (log) du nombre d'apparitions par ingrédient")
     ax.set_xlabel("log(1 + nombre d'apparitions)")
     return fig
@@ -19,6 +27,7 @@ def summarize_ingredient_stats(ingredient_counts: pd.DataFrame) -> pd.DataFrame:
     """
     Compute and return quantile summary (describe + percentiles).
     """
+    print(ingredient_counts.head)
     quantiles = ingredient_counts["count"].describe(
         percentiles=[0.5, 0.75, 0.9, 0.95, 0.99]
     )
@@ -65,6 +74,7 @@ def make_counts_boxplot_fig(ingredient_counts: pd.DataFrame) -> plt.Figure:
 def top_cooccurrences_for(ingredient, jaccard, co_occurrence, k=15, min_co=20):
     ing = ingredient.lower().strip()
     if ing not in jaccard.index:
+        print(f"'{ingredient}' n'existe pas dans la matrice.")
         return pd.DataFrame()
 
     # ligne Jaccard + co-occurrence
