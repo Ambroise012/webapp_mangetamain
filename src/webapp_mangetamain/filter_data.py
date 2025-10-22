@@ -3,12 +3,12 @@ import pandas as pd
 import numpy as np
 import load_config
 import ast
+import re
+from load_config import cfg, recipe
 
 
 recipes = load_config.recipe
-import re
 
-from webapp_mangetamain.load_config import cfg, recipe
 
 def general_complexity_prepocessing(df: pd.DataFrame):
     df = df.copy()
@@ -91,6 +91,8 @@ ingredient_counts = (
     .rename(columns={"index": "ingredient"})
 )
 
+
+
 co_occurrence = pd.read_csv("artifacts/co_occurrence.csv", index_col=0)
 jaccard = pd.read_csv("artifacts/jaccard.csv", index_col=0)
 
@@ -133,3 +135,104 @@ def separate_foods_drinks(recipes_df: pd.DataFrame) -> tuple[pd.DataFrame, pd.Da
     food_recipes = recipes_df[~recipes_df["id"].isin(drink_ids)]
 
     return food_recipes, drink_recipes
+
+
+
+
+def parse_tags_column(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Transforme la colonne 'tags' en une vraie liste Python
+    et crée un DataFrame (id, tags) propre pour analyse.
+    """
+    # 1️⃣ on garde seulement les colonnes utiles
+    df = df[["id", "tags"]].copy()
+
+    # 2️⃣ parser les listes de chaînes de caractères
+    def parse_list(x):
+        if isinstance(x, list):
+            return x
+        if isinstance(x, str):
+            try:
+                val = ast.literal_eval(x)
+                if isinstance(val, list):
+                    return val
+                else:
+                    return [val]
+            except Exception:
+                return [x]
+        return []
+
+    df["tags"] = df["tags"].apply(parse_list)
+
+    # 3️⃣ exploser pour avoir 1 ligne = 1 ingrédient par recette
+    exploded = df.explode("tags").dropna(subset=["tags"])
+
+    # 4️⃣ nettoyer un peu les noms
+    exploded["tags"] = (
+        exploded["tags"]
+        .astype(str)
+        .str.lower()
+        .str.strip()
+    )
+
+    return exploded 
+
+tags_exploded = parse_tags_column(recipes_clean)
+
+
+WORLD_CUISINES = {    
+    "North America": [
+        "north-american", "american", "canadian",
+        "southern-united-states", "southwestern-united-states",
+        "northeastern-united-states", "pacific-northwest",
+        "californian", "tex-mex", "hawaiian", "native-american",
+        "pennsylvania-dutch", "amish-mennonite", "cajun", "creole", "soul"
+    ],
+    "Central & South America": [
+        "mexican", "central-american", "caribbean",
+        "puerto-rican", "cuban", "argentine", "brazilian", "chilean",
+        "colombian", "peruvian", "ecuadorean", "costa-rican",
+        "guatemalan", "honduran", "venezuelan", "baja", "south-american"
+    ],
+    "Europe": [
+        "european", "german", "italian", "french", "greek", "spanish", "portuguese",
+        "english", "irish", "scottish", "welsh", "russian", "polish", "dutch",
+        "austrian", "swiss", "swedish", "scandinavian", "danish", "czech", "hungarian",
+        "georgian", "icelandic", "norwegian", "belgian", "british-columbian"
+    ],
+    "Africa & Middle East": [
+        "african", "moroccan", "egyptian", "ethiopian", "nigerian", "sudanese",
+        "congolese", "somalian", "jewish-ashkenazi", "jewish-sephardi",
+        "palestinian", "lebanese", "iraqi", "saudi-arabian", "turkish",
+        "iranian-persian", "middle-eastern"
+    ],
+    "Asia": [
+        "asian", "indian", "chinese", "cantonese", "szechuan", "hunan", "beijing",
+        "japanese", "korean", "thai", "vietnamese", "indonesian", "malaysian",
+        "filipino", "cambodian", "laotian", "mongolian", "pakistani", "nepalese"
+    ],
+    "Oceania": [
+        "australian", "new-zealand", "polynesian", "micro-melanesia", "south-west-pacific"
+    ]
+}
+
+
+CUISINE_TO_REGION = {}
+for region, cuisines in WORLD_CUISINES.items():
+    for tag in cuisines:
+        CUISINE_TO_REGION[tag] = region
+        
+tags_exploded["continent"] = tags_exploded["tags"].map(CUISINE_TO_REGION)
+
+
+recipe_continent = tags_exploded.dropna(subset=["continent"]).drop_duplicates("id")
+
+recipes_with_continent = recipes_clean.merge(
+    recipe_continent[["id", "continent"]],
+    on="id",
+    how="left"
+)
+
+recipes_with_continent["log_minutes"] = np.log1p(recipes_with_continent["minutes"])
+
+ingredient_and_continent = recipe_continent.merge(ingredients_exploded, on="id", how='left')
