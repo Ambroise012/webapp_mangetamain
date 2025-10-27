@@ -7,8 +7,8 @@ def plot_ingredient_per_recette(ingredients_exploded: pd.DataFrame):
     counts_per_recipe = ingredients_exploded.groupby("id")["ingredients"].nunique()
     fig1, ax1 = plt.subplots(figsize=(7, 3))
     sns.histplot(counts_per_recipe, bins=30, kde=True, color="skyblue", ax=ax1)
-    ax1.set_xlabel("Nombre d'ingrédients par recette")
-    ax1.set_ylabel("Nombre de recettes")
+    ax1.set_xlabel("Number of ingredients per recipe")
+    ax1.set_ylabel("Number of recipes")
     return fig1
 
 
@@ -18,8 +18,8 @@ def plot_ingredient_distribution(ingredient_counts: pd.DataFrame):
     """
     fig, ax = plt.subplots(figsize=(7, 4))
     sns.histplot(np.log1p(ingredient_counts["count"].values), bins=50, kde=True, color="salmon", ax=ax)
-    ax.set_title("Distribution (log) du nombre d'apparitions par ingrédient")
-    ax.set_xlabel("log(1 + nombre d'apparitions)")
+    ax.set_title("Log distribution of ingredient frequencies")
+    ax.set_xlabel("log(1 + frequency)")
     return fig
 
 
@@ -52,8 +52,8 @@ def make_top_ingredients_bar_fig(ingredient_counts: pd.DataFrame, top_n: int = 3
         ax=ax,
         palette="viridis"
     )
-    ax.set_title(f"Top {top_n} ingrédients les plus fréquents", fontsize=13, pad=10)
-    ax.set_xlabel("Nombre d'occurrences")
+    ax.set_title(f"Top {top_n} most frequent ingredients", fontsize=13, pad=10)
+    ax.set_xlabel("Number of occurrences")
     ax.set_ylabel("")
     plt.tight_layout()
     return fig
@@ -65,7 +65,7 @@ def make_counts_boxplot_fig(ingredient_counts: pd.DataFrame) -> plt.Figure:
     """
     fig, ax = plt.subplots(figsize=(6, 3))
     sns.boxplot(x=np.log1p(ingredient_counts["count"]), ax=ax, color="lightblue")
-    ax.set_title("Distribution log des fréquences d'ingrédients")
+    ax.set_title("Log distribution of ingredient counts")
     ax.set_xlabel("log(1 + count)")
     plt.tight_layout()
     return fig

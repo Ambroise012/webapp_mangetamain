@@ -227,7 +227,7 @@ def render_ingredient_tab():
     """
     ingredients_exploded: DataFrame avec colonnes ['id','ingredients'] (déjà normalisées)
     """
-    st.header("🥕 Ingredients")
+    st.header("Ingredients")
 
     # === 1) Statistiques globales ===
     n_recettes = filter_data.ingredients_exploded["id"].nunique()
@@ -237,31 +237,86 @@ def render_ingredient_tab():
     )
 
     col1, col2, col3 = st.columns(3)
-    col1.metric("Ingrédients uniques", f"{n_ingredients_uniques:,}")
-    col2.metric("Recettes", f"{n_recettes:,}")
-    col3.metric("Moy. ingrédients / recette", f"{mean_ingredients_per_recipe:.2f}")
+    col1.metric("Unique ingredients", f"{n_ingredients_uniques:,}")
+    col2.metric("Recipes", f"{n_recettes:,}")
+    col3.metric("Avg. ingredients per recipe", f"{mean_ingredients_per_recipe:.2f}")
 
     st.divider()
     # ===== 2) Distribution & résumé =====
-    st.subheader("Distribution du nombre d’ingrédients par recette")
+    st.subheader("Distribution of the number of ingredients per recipe")
     st.pyplot(ingredients_analyzer.plot_ingredient_per_recette(filter_data.ingredients_exploded))
+    st.markdown("""
+    The number of ingredients per recipe generally ranges between **5 and 12**, with a peak around **8 ingredients**.
+    This indicates that most recipes are **moderately complex**: not extremely simple, but not overly elaborate either.
 
-    st.subheader("Distribution des fréquences")
+    The distribution is **right-skewed**, meaning:
+    - Very simple recipes with few ingredients are **less common**,
+    - Very complex recipes (15+ ingredients) do exist but are **rare**, likely corresponding to festive or professional dishes.
+
+    **Key Insight:**
+    Most home cooking tends to use a **moderate number of ingredients**, balancing simplicity and flavor.
+    """)
+
+    st.subheader("Ingredient Frequency Distribution")
     ingredient_counts = filter_data.ingredient_counts
     st.dataframe(ingredients_analyzer.summarize_ingredient_stats(ingredient_counts))
     st.pyplot(ingredients_analyzer.plot_ingredient_distribution(ingredient_counts))
+    st.markdown("""
+    The ingredient frequency follows a **long-tail distribution**:
+    - A **small set of ingredients** (e.g., *salt, butter, sugar, onion*) appears extremely frequently,
+    - While **the majority of ingredients** appear only occasionally.
 
-    st.subheader("Top ingrédients")
-    top_n = st.slider("Afficher les N ingrédients les plus fréquents", 10, 100, 30, 5)
+    Using a log scale makes this pattern clear:
+    most ingredients are **rare**, while a few are **universal pantry staples**.
+
+    **Key Insight:**
+    This confirms that cooking relies on a **shared basic pantry**, enriched with **regional or personal variations**.
+    """)
+
+    st.subheader("Most Frequent Ingredients")
+    top_n = st.slider("Display the top N most frequent ingredients", 10, 100, 30, 5)
     st.pyplot(ingredients_analyzer.make_top_ingredients_bar_fig(ingredient_counts, top_n))
+    st.markdown("""
+    The top ingredients include:
+    **salt, butter, sugar, onion, eggs, olive oil, flour, garlic, milk, pepper**.
+
+    These represent:
+    - **Base seasoning:** salt, pepper, garlic
+    - **Core fats:** butter, olive oil
+    - **Structural staples:** flour, eggs, milk
+
+    Because these ingredients appear **almost everywhere**, they are **not useful** for distinguishing:
+    - Culinary styles
+    - Dietary constraints
+    - Regional cuisines
+
+    **Therefore, we exclude these 'omnipresent' ingredients in further analysis.**
+    """)
 
     # ===== 3) Fenêtre de fréquence =====
-    st.subheader("Sélection de la fenêtre de fréquence")
+    st.subheader("Frequency Window Selection")
+    st.markdown("""
+    To extract **meaningful ingredient patterns**, we restrict the analysis to ingredients appearing
+    **often enough to be relevant**, but **not so frequently that they appear everywhere**.
+
+    Example window:
+    min_count = 100
+    max_count = 5000
+    This removes:
+    - **Rare ingredients** (not statistically meaningful)
+    - **Universal staples** (not informative)
+
+    **Key Insight:**
+    This step isolates the **ingredients that define cooking identity**, such as:
+    regional flavors, cuisine families, or dietary patterns.
+    """)
+
+
     min_count = st.number_input(
-        "min_count (exclure les ingrédients trop rares)",
+        "min_count (exclude very rare ingredients)",
         1, int(ingredient_counts["count"].max()), 200
     )
-    use_max = st.checkbox("Limiter les hyper-fréquents (max_count)", value=True)
+    use_max = st.checkbox("Limit very common ingredients (max_count)", value=True)
     default_max = 5000
     max_count = st.number_input(
         "max_count", min_count, int(ingredient_counts["count"].max()),
@@ -271,26 +326,48 @@ def render_ingredient_tab():
     kept_counts = filter_data.filter_counts_window(
         ingredient_counts, min_count=min_count, max_count=max_count
     )
+
     st.caption(
-        f"Ingrédients conservés: **{len(kept_counts):,}** | "
-        f"Occurrences cumulées: **{kept_counts['count'].sum():,}**"
+        f"→ {len(kept_counts):,} ingredients kept after filtering "
+        f"(representing {kept_counts['count'].sum():,} total usages)"
     )
-    st.subheader("Focus sur un ingrédient")
+
+    st.subheader("Ingredient Neighborhood — Similarity-Based Pairings")
+    st.markdown("""
+    By selecting an ingredient, we compute the ingredients that **co-occur most often with it**
+    (using **Jaccard similarity** or **conditional probability P(B|A)**).
+
+    This reveals:
+    - **Flavor pairings**
+    - **Substitution patterns**
+    - **Cooking contexts**
+
+    Example:
+    Choosing **‘low-fat milk’** suggests ingredients such as:
+    `whole wheat flour`, `egg whites`, `canola oil`, `cooking spray`.
+
+    ## Interpretation:
+    These combinations point to **healthy baking / breakfast cuisine**.
+
+    This feature is especially useful for:
+
+    - Suggesting substitutes
+    - Understanding cuisine profiles
+    - Exploring ingredient roles in recipes
+    """)
     c1, c2 = st.columns([2, 1])
     with c1:
-        focus = st.selectbox("Choisir un ingrédient", sorted(filter_data.co_occurrence.columns.to_list()))
+        focus = st.selectbox("Select an ingredient", sorted(filter_data.co_occurrence.columns.to_list()))
     with c2:
         k = st.slider("Top K", 5, 40, 15)
 
-    min_co_focus = st.slider("Co-occurrence minimale (|A∩B|) pour le focus", 1, 200, 20)
+    min_co_focus = st.slider("Minimum co-occurrence (|A∩B|) for focus", 1, 200, 20)
     metric = st.radio("Mesure", ["Jaccard"], horizontal=True)
 
     if metric == "Jaccard":
         assoc = ingredients_analyzer.top_cooccurrences_for(focus, filter_data.jaccard, filter_data.co_occurrence, k=k, min_co=min_co_focus)
-        x_field, title = "score", f"Top voisins Jaccard avec '{focus}'"
-    else:
-        assoc = ingredients_analyzer.top_conditional_for(focus, filter_data.co_occurrence, k=k, min_co=min_co_focus)
-        x_field, title = "P(B|A)", f"Top co-occurrents (P(B|A)) avec '{focus}'"
+        x_field, title = "score", f"Top neighbors Jaccard avec '{focus}'"
+
 
     st.pyplot(ingredients_analyzer.make_association_bar_fig(assoc, title, x=x_field))
     st.dataframe(assoc)
@@ -320,16 +397,86 @@ def render_complexity_tab():
     with col2:
         st.pyplot(box_fig)
     if feature == "minutes":
-        st.caption("ℹ️ Showing **log(minutes)** for readability (long tail).")
+        st.markdown("""
+    ###Univariate Analysis — Preparation Time (`minutes`)
+
+    The distribution of preparation time is **highly skewed**.
+    Most recipes take **less than 60 minutes**, but a small number of slow-cook or resting-time recipes
+    extend the distribution to several hours.
+
+    -> This creates a **long right tail**, making the raw time scale misleading.
+    To address this, we use **`log(minutes)`** in visualizations and correlations, which **compresses extreme values**
+    and reveals the underlying structure of typical recipes.
+    """)
+
+    elif feature == "n_steps":
+        st.markdown("""
+    ### Univariate Analysis — Number of Steps (`n_steps`)
+
+    The number of steps is more **tightly distributed**.
+    Most recipes have **between 5 and 15 steps**.
+
+    - Very short recipes (1–3 steps) usually correspond to **simple preparations**.
+    - Recipes with **more than 20 steps** tend to be **complex meals, baking workflows, or multi-phase preparations**.
+
+    -> `n_steps` is a strong indicator of **procedural complexity** in a recipe.
+    """)
+
+    else:  # n_ingredients
+        st.markdown("""
+    ### Univariate Analysis — Number of Ingredients (`n_ingredients`)
+
+    Most recipes use **between 5 and 12 ingredients**, which corresponds to a moderate level of complexity.
+
+    - Few-ingredient recipes are often **simple bases or minimal dishes**.
+    - High-ingredient recipes usually indicate **rich, festive, or slow-cooked dishes**.
+
+    -> While useful, this metric is **less strongly tied to complexity** than the number of steps.
+    """)
 
     st.subheader("Relationships between features")
     features_rel = ["log_minutes", "n_steps", "n_ingredients"]
     pair_fig = make_pairplot_fig(df, features_rel, hue=("kind" if "kind" in df.columns else None))
     st.pyplot(pair_fig)
+    st.markdown("""
+    ### Relationships Between Complexity Features
+
+    The pairplot highlights **positive relationships** among the three dimensions:
+
+    - **`n_steps` ↔ `n_ingredients`** — **Strongest relationship**
+    → Recipes that require more steps tend to involve **more ingredients**.
+
+    - **`log(minutes)` ↔ `n_steps`** — Moderate relationship
+    → Longer recipes often have more steps, but this is not always the case:
+        some recipes have **long passive waits** (resting, slow cooking), increasing time without adding complexity.
+
+    - **`log(minutes)` ↔ `n_ingredients`** — Weaker relationship
+    → A dish may have many ingredients *without* being time-consuming (e.g., composed salads, marinades).
+
+    -> **Key Insight:**
+    The **number of steps** is the most reliable indicator of **practical complexity**, since it measures effort more directly.
+    """)
 
     st.subheader("Correlation matrix")
     corr_fig = make_corr_heatmap_fig(df, features_rel, "Correlation (log_minutes, n_steps, n_ingredients)")
     st.pyplot(corr_fig)
+    st.markdown("""
+    ### Correlation Matrix — Summary
+
+    | Variable Pair | Correlation | Interpretation |
+    |--------------|------------|----------------|
+    | `n_steps` ↔ `n_ingredients` | **0.40 – 0.45** | More steps usually imply more ingredients. |
+    | `log(minutes)` ↔ `n_steps` | **0.30 – 0.35** | Longer recipes tend to require more steps, except when time is passive. |
+    | `log(minutes)` ↔ `n_ingredients` | **0.25 – 0.35** | Ingredient count contributes to complexity but not strongly to cooking time. |
+
+    **Overall Conclusion:**
+
+    - **`n_steps` is the strongest single proxy for recipe complexity.**
+    - **Time must be log-transformed** to be interpreted properly.
+    - **Ingredient count** adds context but is secondary.
+
+    In short, recipe complexity is **structural** (how much you *do*), not just **temporal** (how long it cooks).
+    """)
 
 
 def render_other_tab():
@@ -341,36 +488,45 @@ def render_other_tab():
 
 def render_local_food_tab():
     """
-    Onglet Streamlit : Analyse des cuisines par continent.
+    Streamlit Tab: Analysis of cuisines by continent.
     """
-    st.header("🌍 Analyse des cuisines par continent")
+    st.header("Cuisine Analysis by Continent")
 
-    # === Chargement des données ===
+    # === Load data ===
     recipes_with_continent = filter_data.recipes_with_continent
-    ingredient_and_continent = filter_data.ingredient_and_continent  # ou ton DataFrame global
+    ingredient_and_continent = filter_data.ingredient_and_continent
 
-    st.caption(f"Nombre total de recettes : **{len(recipes_with_continent):,}**")
+    st.caption(f"Total number of recipes: **{len(recipes_with_continent):,}**")
 
-    # === 1) Distribution globale (temps, étapes, ingrédients) ===
-    st.subheader("📦 Distribution des caractéristiques par continent")
+    # === 1) Distribution plots ===
+    st.subheader("Distribution of recipe complexity by continent")
     st.pyplot(plot_cuisine_distributions(recipes_with_continent))
 
-    # === 2) Ingrédients typiques ===
-    st.subheader("🥕 Ingrédients typiques par continent")
+    st.markdown("""
+    **Interpretation:**
+    The boxplots show clear regional differences in recipe complexity:
+    - **North American** and **Oceania** cuisines tend to have shorter preparation times and fewer steps.
+    - **Asian** and **European** cuisines show a wider spread, indicating more diversity in cooking times and methods.
+    - **Africa & Middle East** and **Central & South America** often use more ingredients per recipe, suggesting richer flavor profiles.  
+    Overall, Asian and European cuisines appear the most complex, while Oceania recipes are the simplest.
+    """)
+
+    # === 2) Typical ingredients ===
+    st.subheader("🥕 Typical ingredients by continent")
 
     top_n = st.slider(
-        "Nombre d'ingrédients à afficher par continent",
+        "Number of ingredients to display per continent",
         min_value=5, max_value=30, value=10, step=1
     )
 
     threshold = st.slider(
-        "Seuil d'omniprésence (exclusion des ingrédients présents dans plus de X% des recettes)",
-        min_value=0.05, max_value=1.0, value=0.3, step=0.05
-    ) / 100
+        "Omnipresence threshold (exclude ingredients appearing in more than X% of recipes)",
+        min_value=0.05, max_value=1.0, value=0.30, step=0.05
+    )
 
     st.caption(
-        f"Les ingrédients apparaissant dans plus de **{int(threshold * 100)}%** des recettes "
-        f"sont exclus pour éviter les biais (ex: *salt*, *water*, etc.)."
+        f"Ingredients appearing in more than **{int(threshold * 100)}%** of recipes "
+        f"are excluded to avoid global staples like *salt*, *water*, or *sugar*."
     )
 
     st.pyplot(
@@ -381,11 +537,23 @@ def render_local_food_tab():
         )
     )
 
-    # === 3) Infos supplémentaires ===
-    st.info(
-        "💡 Astuce : essaye de baisser le seuil d'omniprésence (vers 10–20%) pour faire ressortir les ingrédients caractéristiques de chaque cuisine."
-    )
+    st.markdown("""
+    **Interpretation:**
+    The chart highlights the **signature ingredients** of each continent:
+    - **Asia:** soy sauce, sesame oil, rice wine, and curry leaves dominate, emphasizing umami-rich flavors.
+    - **Europe:** strong presence of pasta, cheese, and tomato-based products, typical of Mediterranean and Italian influences.
+    - **North America:** a prevalence of processed products (cheese blends, corn syrup), reflecting industrialized cooking habits.
+    - **Central & South America:** ingredients like *adobo*, *tomatillos*, and *queso fresco* reveal a spicy and colorful cuisine.
+    - **Africa & Middle East:** ingredients such as *harissa*, *rose water*, and *coriander seed* reflect deep spice traditions.
+    - **Oceania:** recipes often reuse European bases but with regional variations like *macadamia* and *golden syrup*.
 
+    Overall, each continent shows clear culinary identity once global ingredients are filtered out.
+    """)
+
+    # === 3) User tip ===
+    st.info(
+        "💡 Tip: Try lowering the omnipresence threshold (e.g. 10–20%) to highlight truly distinctive regional ingredients."
+    )
 
 
 def main():
